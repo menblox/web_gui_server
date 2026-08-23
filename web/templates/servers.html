@@ -191,11 +191,110 @@
             background: #c0392b;
         }
 
+        /* ----- Модальное окно ----- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px 35px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: 0.2s;
+        }
+        .modal-close:hover {
+            color: #2c3e50;
+        }
+        .modal-content h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #1e2a3a;
+        }
+        .modal-content label {
+            display: block;
+            margin-top: 12px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dce1e8;
+            border-radius: 8px;
+            font-size: 15px;
+            margin-top: 4px;
+            transition: border 0.2s;
+        }
+        .modal-content input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        .modal-content .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        .modal-content .form-row > div {
+            flex: 1;
+        }
+        .modal-content .submit-btn {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .modal-content .submit-btn:hover {
+            background: #2980b9;
+        }
+        .modal-content .error-msg {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+
         /* Адаптив */
         @media (max-width: 768px) {
             .metrics-cell {
                 flex-direction: column;
                 gap: 4px;
+            }
+            .modal-content {
+                margin: 20px;
+                padding: 20px;
+            }
+            .modal-content .form-row {
+                flex-direction: column;
+                gap: 0;
             }
         }
     </style>
@@ -240,6 +339,38 @@
         </div>
 
         <button id="logoutBtn">Выйти</button>
+    </div>
+
+    <!-- Модальное окно добавления сервера -->
+    <div class="modal" id="addServerModal">
+        <div class="modal-content">
+            <span class="modal-close" id="modalClose">&times;</span>
+            <h2>Добавление сервера</h2>
+            <form id="addServerForm">
+                <label for="serverName">Название *</label>
+                <input type="text" id="serverName" placeholder="например, Web-сервер" required>
+
+                <label for="serverHost">Хост *</label>
+                <input type="text" id="serverHost" placeholder="IP-адрес или домен" required>
+
+                <div class="form-row">
+                    <div>
+                        <label for="serverPort">Порт</label>
+                        <input type="number" id="serverPort" value="22" min="1" max="65535">
+                    </div>
+                    <div>
+                        <label for="serverUser">Имя пользователя *</label>
+                        <input type="text" id="serverUser" placeholder="root" required>
+                    </div>
+                </div>
+
+                <label for="serverPassword">Пароль *</label>
+                <input type="password" id="serverPassword" placeholder="SSH-пароль" required>
+
+                <div id="formError" class="error-msg"></div>
+                <button type="submit" class="submit-btn">➕ Добавить</button>
+            </form>
+        </div>
     </div>
 
     <script>
@@ -288,9 +419,9 @@
                             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                             <td>
                                 <div class="metrics-cell">
-                                    <span class="metric-item">CPU ${server.metrics?.cpu || '--'}%</span>
-                                    <span class="metric-item">RAM ${server.metrics?.ram || '--'}%</span>
-                                    <span class="metric-item">Диск ${server.metrics?.disk || '--'}%</span>
+                                    <span class="metric-item">CPU ${server.cpu !== null && server.cpu !== undefined ? Math.round(server.cpu) + '%' : '--'}</span>
+                                    <span class="metric-item">RAM ${server.ram !== null && server.ram !== undefined ? Math.round(server.ram) + '%' : '--'}</span>
+                                    <span class="metric-item">Диск ${server.disk !== null && server.disk !== undefined ? Math.round(server.disk) + '%' : '--'}</span>
                                 </div>
                             </td>
                             <td class="actions">
@@ -339,9 +470,64 @@
             }
         }
 
-        // ----- Добавление сервера (заглушка) -----
-        document.getElementById('addServerBtn').addEventListener('click', () => {
-            alert('Форма добавления сервера будет здесь (реализуйте позже)');
+        // ----- Модальное окно -----
+        const modal = document.getElementById('addServerModal');
+        const addBtn = document.getElementById('addServerBtn');
+        const closeBtn = document.getElementById('modalClose');
+        const form = document.getElementById('addServerForm');
+        const errorDiv = document.getElementById('formError');
+
+        addBtn.addEventListener('click', () => {
+            modal.classList.add('active');
+            form.reset();
+            errorDiv.style.display = 'none';
+            // установить порт по умолчанию
+            document.getElementById('serverPort').value = 22;
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+
+        // ----- Отправка формы -----
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorDiv.style.display = 'none';
+
+            const name = document.getElementById('serverName').value.trim();
+            const host = document.getElementById('serverHost').value.trim();
+            const port = parseInt(document.getElementById('serverPort').value) || 22;
+            const username = document.getElementById('serverUser').value.trim();
+            const password = document.getElementById('serverPassword').value.trim();
+
+            if (!name || !host || !username || !password) {
+                errorDiv.textContent = 'Все поля обязательны';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const resp = await authFetch('/api/servers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, host, port, username, password })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.detail || 'Ошибка добавления');
+                }
+                modal.classList.remove('active');
+                loadServers();
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+            }
         });
 
         // ----- Гамбургер -----
@@ -368,7 +554,6 @@
 
         // ----- Инициализация -----
         loadServers();
-        // Обновляем каждые 15 секунд
         setInterval(loadServers, 15000);
     </script>
 </body>

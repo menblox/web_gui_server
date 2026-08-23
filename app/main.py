@@ -8,11 +8,12 @@ from datetime import datetime
 
 from app.database import engine
 from models.users import Base, User, Commands
-from schemas.validation import UserLogin, Token, CommandResponse, CommandPost
+from schemas.validation import ServerCommand, ServerCreate, ServerResponse, UserLogin, Token, CommandResponse, CommandPost
 
 from back.auth import get_user_by_username, verify_password, create_access_token, get_current_user, get_db, get_current_commands
 from back.commands_run import run_command
 from back.load_sys import get_system_load
+from back.server_manager import add_new_server, delete_server, execute_on_server, get_servers, refresh_all_servers
 
 Base.metadata.create_all(bind=engine)
 
@@ -70,6 +71,43 @@ async def commands_post(command_data: CommandPost, db: Session = Depends(get_db)
             error=result["error"], 
             returncode=result["returncode"]
         )
+
+
+##################################################################
+#                       post запросы                             #
+##################################################################
+
+@app.post("/api/servers", response_model=ServerResponse)
+async def create_server_endpoint(
+    server_data: ServerCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Доступ запрещён")
+    server = await add_new_server(db, server_data)
+    return server
+
+@app.delete("/api/servers/{server_id}")
+async def delete_server_endpoint(
+    server_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="Доступ запрещён")
+    if not delete_server(db, server_id):
+        raise HTTPException(404, "Сервер не найден")
+    return {"message": "Сервер удалён"}
+
+@app.post("/api/servers/{server_id}/exec")
+async def exec_on_server_commands(
+    server_id: int,
+    cmd_data: ServerCommand,
+    db: Session = Depends(get_db),
+):
+    result = await execute_on_server(db, server_id, cmd_data.command, cmd_data.timeout)
+    return result
 
 ##################################################################
 #                       get запросы                              #
@@ -129,3 +167,10 @@ async def api_server_commands(db: Session = Depends(get_db), current_user: User 
 @app.get("/home/servers/", response_class=HTMLResponse)
 def servers_page():
     return GET_HTML("servers.html").open_page()
+
+@app.get("/api/servers")
+async def api_metrics(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin", "user"]:
+            raise HTTPException(status_code=403, detail="Доступ запрещён")
+    servers = get_servers(db)
+    return servers
