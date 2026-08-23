@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: sans-serif;
+            background: #f5f7fa;
+            height: 100vh;
+            display: flex;
+        }
+
+        /* Боковая панель */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background: #2c3e50;
+            color: white;
+            transition: 0.3s;
+            padding-top: 60px;
+            z-index: 1000;
+        }
+        .sidebar.open {
+            left: 0;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar ul li {
+            padding: 15px 25px;
+            border-bottom: 1px solid #34495e;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .sidebar ul li:hover {
+            background: #34495e;
+        }
+        .sidebar ul li a {
+            color: white;
+            text-decoration: none;
+            display: block;
+        }
+
+        /* Гамбургер */
+        .hamburger {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 1001;
+            background: #2c3e50;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            user-select: none;
+        }
+        .hamburger:hover {
+            background: #34495e;
+        }
+
+        /* Основной контент */
+        .content {
+            margin-left: 20px;
+            margin-top: 70px;
+            flex: 1;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-top: 0;
+        }
+        .field {
+            margin: 15px 0;
+        }
+        .field label {
+            display: inline-block;
+            width: 80px;
+            font-weight: bold;
+        }
+        .field span {
+            display: inline-block;
+        }
+
+        #logoutBtn {
+            margin-top: 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #logoutBtn:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Гамбургер -->
+    <div class="hamburger" id="hamburger">☰</div>
+
+    <!-- Боковая панель -->
+    <div class="sidebar" id="sidebar">
+        <ul>
+            <li><a href="/home/profile/">👤 Профиль</a></li>
+            <li><a href="/home/mitrics/">🖥️ Метрики</a></li>
+            <li><a href="/home/commands/">⌨️ Команды</a></li>
+            <li><a href="/home/servers/">📡 Серверы</a></li>
+            <li><a href="/help">❓ Помощь</a></li>
+        </ul>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="content">
+        <div class="card">
+            <h2>Профиль</h2>
+            <div class="field">
+                <label>Имя:</label>
+                <span id="username">—</span>
+            </div>
+            <div class="field">
+                <label>Роль:</label>
+                <span id="role">—</span>
+            </div>
+            <button id="logoutBtn">Выйти</button>
+        </div>
+    </div>
+
+    <script>
+        // Проверка токена
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Функция для авторизованных запросов
+        async function authFetch(url, options = {}) {
+            const resp = await fetch(url, {
+                ...options,
+                headers: {
+                    ...options.headers,
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (resp.status === 401) {
+                localStorage.removeItem('access_token');
+                window.location.href = '/login';
+                throw new Error('Unauthorized');
+            }
+            return resp;
+        }
+
+        // Загрузка данных профиля
+        async function loadProfile() {
+            try {
+                const resp = await authFetch('/api/profile/');
+                const data = await resp.json();
+                document.getElementById('username').textContent = data.username;
+                document.getElementById('role').textContent = data.role;
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // Гамбургер – открыть/закрыть панель
+        document.getElementById('hamburger').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+
+        // Закрытие панели при клике вне
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('sidebar');
+            const hamburger = document.getElementById('hamburger');
+            if (sidebar.classList.contains('open') &&
+                !sidebar.contains(e.target) &&
+                !hamburger.contains(e.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // Выход
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.removeItem('access_token');
+            window.location.href = '/login';
+        };
+
+        loadProfile();
+    </script>
+</body>
+</html>
