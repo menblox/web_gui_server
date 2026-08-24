@@ -174,6 +174,10 @@
         .actions .delete-btn:hover {
             color: #e74c3c;
         }
+        .actions .refresh-btn.loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
 
         #logoutBtn {
             display: block;
@@ -425,8 +429,9 @@
                                 </div>
                             </td>
                             <td class="actions">
-                                <button onclick="execOnServer(${server.id})" title="Выполнить команду">⚡</button>
-                                <button onclick="editServer(${server.id})" title="Редактировать">✏️</button>
+                                <button class="refresh-btn" data-id="${server.id}" title="Обновить статус и метрики">🔄</button>
+                                <button onclick="window.location.href='/home/servers/${server.id}/exec'" title="Выполнить команду">⚡</button>
+                                <button onclick="window.location.href='/home/servers/${server.id}/update'" title="Редактировать">✏️</button>
                                 <button onclick="deleteServer(${server.id})" class="delete-btn" title="Удалить">🗑️</button>
                             </td>
                         </tr>
@@ -446,14 +451,43 @@
             return div.innerHTML;
         }
 
-        // ----- Действия (заглушки) -----
-        function execOnServer(id) {
-            alert(`Выполнить команду на сервере ID ${id} (будет реализовано позже)`);
+        // ----- Обновление конкретного сервера -----
+        async function refreshServer(id) {
+            console.log('refreshServer called for id:', id);
+            // Найдём кнопку и покажем загрузку
+            const btn = document.querySelector(`.refresh-btn[data-id="${id}"]`);
+            if (btn) {
+                btn.classList.add('loading');
+                btn.textContent = '⏳';
+            }
+            try {
+                const resp = await authFetch(`/api/servers/${id}/refresh`, { method: 'POST' });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.detail || 'Ошибка обновления');
+                }
+                // Обновляем таблицу
+                await loadServers();
+            } catch (e) {
+                console.error(e);
+                alert('Не удалось обновить сервер: ' + e.message);
+            } finally {
+                if (btn) {
+                    btn.classList.remove('loading');
+                    btn.textContent = '🔄';
+                }
+            }
         }
 
-        function editServer(id) {
-            alert(`Редактировать сервер ID ${id} (будет реализовано позже)`);
-        }
+        // ----- Обработчик кликов на кнопки обновления (делегирование) -----
+        document.getElementById('serversBody').addEventListener('click', function(e) {
+            const target = e.target.closest('.refresh-btn');
+            if (target) {
+                e.preventDefault();
+                const id = target.dataset.id;
+                if (id) refreshServer(id);
+            }
+        });
 
         async function deleteServer(id) {
             if (!confirm(`Удалить сервер ID ${id}?`)) return;
@@ -481,7 +515,6 @@
             modal.classList.add('active');
             form.reset();
             errorDiv.style.display = 'none';
-            // установить порт по умолчанию
             document.getElementById('serverPort').value = 22;
         });
 
@@ -495,7 +528,7 @@
             }
         });
 
-        // ----- Отправка формы -----
+        // ----- Отправка формы добавления -----
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             errorDiv.style.display = 'none';
@@ -554,7 +587,7 @@
 
         // ----- Инициализация -----
         loadServers();
-        setInterval(loadServers, 15000);
+        setInterval(loadServers, 10000);
     </script>
 </body>
 </html>

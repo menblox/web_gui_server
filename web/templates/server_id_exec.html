@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Выполнение команды</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ----- Боковая панель ----- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background: #1e2a3a;
+            color: white;
+            transition: 0.3s;
+            padding-top: 60px;
+            z-index: 1000;
+        }
+        .sidebar.open { left: 0; }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar ul li {
+            padding: 15px 25px;
+            border-bottom: 1px solid #2c3e50;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .sidebar ul li:hover { background: #2c3e50; }
+        .sidebar ul li a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            font-size: 16px;
+        }
+
+        .hamburger {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 1001;
+            background: #1e2a3a;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            user-select: none;
+        }
+        .hamburger:hover { background: #2c3e50; }
+
+        /* ----- Основной контент ----- */
+        .content {
+            flex: 1;
+            margin: 70px 20px 40px 20px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            font-weight: 400;
+            font-size: 28px;
+            color: #1e2a3a;
+        }
+        .back-btn {
+            background: #7f8c8d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .back-btn:hover { background: #5d6d7e; }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-weight: 400;
+            font-size: 20px;
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .server-info {
+            background: #f8f9fa;
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        .server-info span { font-weight: 600; color: #1e2a3a; }
+
+        .command-form {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .command-form input {
+            flex: 1 1 400px;
+            padding: 12px 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.2s;
+        }
+        .command-form input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        .command-form button {
+            padding: 12px 30px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .command-form button:hover { background: #2980b9; }
+        .command-form button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .output-area {
+            background: #f1f3f5;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+        }
+        .error-output {
+            color: #c0392b;
+            background: #fce4e4;
+        }
+
+        #logoutBtn {
+            display: block;
+            margin: 30px auto 0;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #logoutBtn:hover { background: #c0392b; }
+
+        @media (max-width: 600px) {
+            .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .command-form input { flex: 1 1 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Гамбургер -->
+    <div class="hamburger" id="hamburger">☰</div>
+
+    <!-- Боковая панель -->
+    <div class="sidebar" id="sidebar">
+        <ul>
+            <li><a href="/home/profile/">👤 Профиль</a></li>
+            <li><a href="/home/mitrics/">🖥️ Метрики</a></li>
+            <li><a href="/home/commands/">⌨️ Команды</a></li>
+            <li><a href="/home/servers/">📡 Серверы</a></li>
+            <li><a href="/help">❓ Помощь</a></li>
+        </ul>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="content">
+        <div class="header">
+            <h1 id="pageTitle">Выполнение команды</h1>
+            <button class="back-btn" onclick="window.location.href='/home/servers/'">← Назад к серверам</button>
+        </div>
+
+        <div class="card">
+            <div class="server-info" id="serverInfo">
+                <div><span>Сервер:</span> <span id="serverName">Загрузка...</span></div>
+                <div><span>Хост:</span> <span id="serverHost">--</span></div>
+                <div><span>Статус:</span> <span id="serverStatus">--</span></div>
+            </div>
+
+            <h2>Введите команду</h2>
+            <div class="command-form">
+                <input type="text" id="commandInput" placeholder="Например: ls -la" autofocus>
+                <button id="execBtn">Выполнить</button>
+            </div>
+
+            <h2>Результат</h2>
+            <div class="output-area" id="outputArea">Ожидание команды...</div>
+        </div>
+
+        <button id="logoutBtn">Выйти</button>
+    </div>
+
+    <script>
+        // ----- Проверка токена и получение ID из URL -----
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Извлекаем server_id из текущего URL (например, /home/servers/1/exec)
+        const pathParts = window.location.pathname.split('/');
+        const serverId = pathParts[3]; // /home/servers/{id}/exec
+
+        if (!serverId) {
+            document.getElementById('outputArea').textContent = 'Ошибка: не указан ID сервера';
+        }
+
+        // ----- Авторизованный fetch -----
+        async function authFetch(url, options = {}) {
+            const resp = await fetch(url, {
+                ...options,
+                headers: {
+                    ...options.headers,
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (resp.status === 401) {
+                localStorage.removeItem('access_token');
+                window.location.href = '/login';
+                throw new Error('Unauthorized');
+            }
+            return resp;
+        }
+
+        // ----- Загрузка информации о сервере -----
+        async function loadServerInfo() {
+            try {
+                const resp = await authFetch(`/api/servers/${serverId}`);
+                if (!resp.ok) throw new Error('Не удалось загрузить данные сервера');
+                const server = await resp.json();
+                document.getElementById('serverName').textContent = server.name;
+                document.getElementById('serverHost').textContent = server.host;
+                document.getElementById('serverStatus').textContent = server.status === 'online' ? '🟢 Вкл' : '🔴 Выкл';
+                document.getElementById('pageTitle').textContent = `Выполнение команды на ${server.name}`;
+            } catch (e) {
+                console.error(e);
+                document.getElementById('serverName').textContent = 'Ошибка загрузки';
+                document.getElementById('outputArea').textContent = 'Не удалось получить информацию о сервере';
+            }
+        }
+
+        // ----- Отправка команды -----
+        async function executeCommand() {
+            const input = document.getElementById('commandInput');
+            const output = document.getElementById('outputArea');
+            const btn = document.getElementById('execBtn');
+            const cmd = input.value.trim();
+            if (!cmd) {
+                output.textContent = 'Введите команду';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Выполнение...';
+            output.textContent = 'Выполнение...';
+            output.className = 'output-area';
+
+            try {
+                const resp = await authFetch(`/api/servers/${serverId}/exec`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: cmd, timeout: 30 })
+                });
+                const data = await resp.json();
+                if (!resp.ok) {
+                    throw new Error(data.detail || 'Ошибка выполнения');
+                }
+                // Формируем вывод
+                let outputText = '';
+                if (data.stdout) outputText += data.stdout + '\n';
+                if (data.stderr) {
+                    outputText += '\n[STDERR]\n' + data.stderr;
+                    output.className = 'output-area error-output';
+                } else {
+                    output.className = 'output-area';
+                }
+                if (!outputText) outputText = 'Команда выполнена (без вывода)';
+                output.textContent = outputText;
+            } catch (e) {
+                output.textContent = 'Ошибка: ' + e.message;
+                output.className = 'output-area error-output';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Выполнить';
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // ----- Обработчики -----
+        document.getElementById('execBtn').addEventListener('click', executeCommand);
+        document.getElementById('commandInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') executeCommand();
+        });
+
+        // ----- Гамбургер -----
+        document.getElementById('hamburger').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('sidebar');
+            const hamburger = document.getElementById('hamburger');
+            if (sidebar.classList.contains('open') &&
+                !sidebar.contains(e.target) &&
+                !hamburger.contains(e.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // ----- Выход -----
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.removeItem('access_token');
+            window.location.href = '/login';
+        };
+
+        // ----- Инициализация -----
+        loadServerInfo();
+    </script>
+</body>
+</html>

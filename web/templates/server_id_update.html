@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Редактирование сервера</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ----- Боковая панель ----- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background: #1e2a3a;
+            color: white;
+            transition: 0.3s;
+            padding-top: 60px;
+            z-index: 1000;
+        }
+        .sidebar.open { left: 0; }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar ul li {
+            padding: 15px 25px;
+            border-bottom: 1px solid #2c3e50;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .sidebar ul li:hover { background: #2c3e50; }
+        .sidebar ul li a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            font-size: 16px;
+        }
+
+        .hamburger {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 1001;
+            background: #1e2a3a;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            user-select: none;
+        }
+        .hamburger:hover { background: #2c3e50; }
+
+        /* ----- Основной контент ----- */
+        .content {
+            flex: 1;
+            margin: 70px 20px 40px 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            font-weight: 400;
+            font-size: 28px;
+            color: #1e2a3a;
+        }
+        .back-btn {
+            background: #7f8c8d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .back-btn:hover { background: #5d6d7e; }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .card h2 {
+            font-weight: 400;
+            font-size: 20px;
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            font-size: 14px;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dce1e8;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border 0.2s;
+        }
+        .form-group input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        .form-group .hint {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .submit-btn:hover { background: #1e8449; }
+        .submit-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .error-msg {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+        .success-msg {
+            color: #27ae60;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        #logoutBtn {
+            display: block;
+            margin: 30px auto 0;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #logoutBtn:hover { background: #c0392b; }
+
+        @media (max-width: 600px) {
+            .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Гамбургер -->
+    <div class="hamburger" id="hamburger">☰</div>
+
+    <!-- Боковая панель -->
+    <div class="sidebar" id="sidebar">
+        <ul>
+            <li><a href="/home/profile/">👤 Профиль</a></li>
+            <li><a href="/home/mitrics/">🖥️ Метрики</a></li>
+            <li><a href="/home/commands/">⌨️ Команды</a></li>
+            <li><a href="/home/servers/">📡 Серверы</a></li>
+            <li><a href="/help">❓ Помощь</a></li>
+        </ul>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="content">
+        <div class="header">
+            <h1>Редактирование сервера</h1>
+            <button class="back-btn" onclick="window.location.href='/home/servers/'">← Назад</button>
+        </div>
+
+        <div class="card">
+            <h2>Изменить данные</h2>
+            <form id="updateForm">
+                <div class="form-group">
+                    <label for="name">Название *</label>
+                    <input type="text" id="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="host">Хост *</label>
+                    <input type="text" id="host" required>
+                </div>
+                <div class="form-group">
+                    <label for="port">Порт</label>
+                    <input type="number" id="port" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="username">Имя пользователя *</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Новый пароль (оставьте пустым, если не менять)</label>
+                    <input type="password" id="password" placeholder="Введите новый пароль">
+                    <div class="hint">Если оставить пустым, пароль останется прежним</div>
+                </div>
+
+                <div id="formError" class="error-msg"></div>
+                <div id="formSuccess" class="success-msg"></div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">💾 Сохранить изменения</button>
+            </form>
+        </div>
+
+        <button id="logoutBtn">Выйти</button>
+    </div>
+
+    <script>
+        // ----- Проверка токена -----
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Получаем ID сервера из URL
+        const pathParts = window.location.pathname.split('/');
+        const serverId = pathParts[3]; // /home/servers/{id}/update
+        if (!serverId) {
+            alert('Не указан ID сервера');
+            window.location.href = '/home/servers/';
+        }
+
+        // ----- Авторизованный fetch -----
+        async function authFetch(url, options = {}) {
+            const resp = await fetch(url, {
+                ...options,
+                headers: {
+                    ...options.headers,
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (resp.status === 401) {
+                localStorage.removeItem('access_token');
+                window.location.href = '/login';
+                throw new Error('Unauthorized');
+            }
+            return resp;
+        }
+
+        // ----- Загрузка данных сервера -----
+        async function loadServer() {
+            try {
+                const resp = await authFetch(`/api/servers/${serverId}`);
+                if (!resp.ok) throw new Error('Не удалось загрузить данные');
+                const server = await resp.json();
+                document.getElementById('name').value = server.name || '';
+                document.getElementById('host').value = server.host || '';
+                document.getElementById('port').value = server.port || 22;
+                document.getElementById('username').value = server.username || '';
+            } catch (e) {
+                console.error(e);
+                alert('Ошибка загрузки данных сервера');
+                window.location.href = '/home/servers/';
+            }
+        }
+
+        // ----- Отправка формы -----
+        document.getElementById('updateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorDiv = document.getElementById('formError');
+            const successDiv = document.getElementById('formSuccess');
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            const name = document.getElementById('name').value.trim();
+            const host = document.getElementById('host').value.trim();
+            const port = parseInt(document.getElementById('port').value) || 22;
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!name || !host || !username) {
+                errorDiv.textContent = 'Все поля, кроме пароля, обязательны';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Сохранение...';
+
+            try {
+                const payload = { name, host, port, username };
+                if (password) payload.password = password;
+
+                const resp = await authFetch(`/api/servers/${serverId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.detail || 'Ошибка обновления');
+                }
+                successDiv.textContent = '✅ Сервер успешно обновлён!';
+                successDiv.style.display = 'block';
+                // Через 2 секунды переходим на список
+                setTimeout(() => {
+                    window.location.href = '/home/servers/';
+                }, 2000);
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '💾 Сохранить изменения';
+            }
+        });
+
+        // ----- Гамбургер -----
+        document.getElementById('hamburger').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('sidebar');
+            const hamburger = document.getElementById('hamburger');
+            if (sidebar.classList.contains('open') &&
+                !sidebar.contains(e.target) &&
+                !hamburger.contains(e.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // ----- Выход -----
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.removeItem('access_token');
+            window.location.href = '/login';
+        };
+
+        // ----- Инициализация -----
+        loadServer();
+    </script>
+</body>
+</html>

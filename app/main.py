@@ -8,12 +8,12 @@ from datetime import datetime
 
 from app.database import engine
 from models.users import Base, User, Commands
-from schemas.validation import ServerCommand, ServerCreate, ServerResponse, UserLogin, Token, CommandResponse, CommandPost
+from schemas.validation import ServerCommand, ServerCreate, ServerResponse, ServerUpdate, UserLogin, Token, CommandResponse, CommandPost
 
 from back.auth import get_user_by_username, verify_password, create_access_token, get_current_user, get_db, get_current_commands
 from back.commands_run import run_command
 from back.load_sys import get_system_load
-from back.server_manager import add_new_server, delete_server, execute_on_server, get_servers, refresh_all_servers
+from back.server_manager import add_new_server, delete_server, execute_on_server, get_server, get_servers, refresh_all_servers, refresh_server_metrics, update_server_data
 
 Base.metadata.create_all(bind=engine)
 
@@ -109,6 +109,14 @@ async def exec_on_server_commands(
     result = await execute_on_server(db, server_id, cmd_data.command, cmd_data.timeout)
     return result
 
+@app.post("/api/servers/{server_id}/refresh")
+async def api_metrics(server_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin", "user"]:
+            raise HTTPException(status_code=403, detail="Доступ запрещён")
+    update_server = await refresh_server_metrics(db, server_id)
+    if not update_server:
+        raise HTTPException(status_code=404, detail="Сервер не найден")
+    return update_server
 ##################################################################
 #                       get запросы                              #
 ##################################################################
@@ -174,3 +182,30 @@ async def api_metrics(db: Session = Depends(get_db), current_user: User = Depend
             raise HTTPException(status_code=403, detail="Доступ запрещён")
     servers = get_servers(db)
     return servers
+
+@app.get("/api/servers/{server_id}")
+async def update_server_get(server_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    server = get_server(db, server_id)
+    if not server:
+        raise HTTPException(status_code=404, detail="Сервер не найден")
+    return server
+
+@app.patch("/api/servers/{server_id}")
+async def update_server(
+    server_id: int,
+    update_data: ServerUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    update = await update_server_data(db, server_id, update_data)
+    if not update:
+        raise HTTPException(status_code=404, detail="Сервер не найден")
+    return update
+
+@app.get("/home/servers/{server_id}/exec", response_class=HTMLResponse)
+def server_id_exec():
+    return GET_HTML("server_id_exec.html").open_page()
+
+@app.get("/home/servers/{server_id}/update", response_class=HTMLResponse)
+def server_id_update():
+    return GET_HTML("server_id_update.html").open_page()
