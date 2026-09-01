@@ -8,11 +8,9 @@ from datetime import datetime
 
 from app.database import engine
 from models.users import Base, User, Commands
-from schemas.validation import ServerCommand, ServerCreate, ServerResponse, ServerUpdate, UserLogin, Token, CommandResponse, CommandPost
+from schemas.validation import ServerCommand, ServerCreate, ServerResponse, ServerUpdate, UserLogin, Token
 
 from back.auth import get_user_by_username, verify_password, create_access_token, get_current_user, get_db, get_current_commands
-from back.commands_run import run_command
-from back.load_sys import get_system_load
 from back.server_manager import add_new_server, delete_server, execute_on_server, get_server, get_servers, refresh_all_servers, refresh_server_metrics, update_server_data
 
 Base.metadata.create_all(bind=engine)
@@ -31,46 +29,6 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     token = create_access_token(data={"sub": user.username, "role": user.role})
     return {"access_token": token, "token_type": "bearer"}
-
-
-##################################################################
-#                      обработка команд                          #
-##################################################################
-
-@app.post("/home/commands/exec", response_model=CommandResponse)
-async def commands_post(command_data: CommandPost, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if not command_data.command.strip():
-        raise HTTPException(status_code=400, detail="Command cannot be empty")
-    if current_user.role == "user":
-        with open("true_commands/list_accept_command.txt", "r", encoding="utf-8") as f:
-            allowed_command = [line.strip() for line in f]
-
-        cmd_name = command_data.command.split()[0]
-        if cmd_name not in allowed_command:
-            raise HTTPException(status_code=403, detail="Command not allowed for your role")
-    
-    result = await run_command(command_data.command)
-
-    log_entry = Commands(
-        user_id=current_user.id,
-        command=command_data.command,
-        result=result["result"],
-        error=result["error"],
-        returncode=result["returncode"],
-    )
-
-    db.add(log_entry)
-    db.commit()
-    db.refresh(log_entry)
-
-    return CommandResponse(
-            username=current_user.username, 
-            role=current_user.role, 
-            command=command_data.command, 
-            result=result["result"], 
-            error=result["error"], 
-            returncode=result["returncode"]
-        )
 
 
 ##################################################################
@@ -137,11 +95,6 @@ class GET_HTML():
 def login_page():
     return GET_HTML("login.html").open_page()
 
-@app.get("/home/commands/", response_class=HTMLResponse)
-def comands_page():
-    return GET_HTML("index.html").open_page()
-
-
 
 @app.get("/home/profile/", response_class=HTMLResponse)
 def profile_page():
@@ -153,17 +106,6 @@ async def api_profile(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Доступ запрещён")
     return {"username": current_user.username, "role": current_user.role}
 
-
-
-@app.get("/home/mitrics/", response_class=HTMLResponse)
-def metrics_page():
-    return GET_HTML("metrics.html").open_page()
-
-@app.get("/api/metrics/")
-async def api_metrics(current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "user"]:
-            raise HTTPException(status_code=403, detail="Доступ запрещён")
-    return get_system_load()
 
 @app.get("/api/server/commands/")
 async def api_server_commands(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
